@@ -1,0 +1,107 @@
+// Karaoke / KTV management schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  STAFF
+  CUSTOMER
+}
+
+enum RoomType {
+  STANDARD
+  VIP
+  LUXURY
+}
+
+enum RoomStatus {
+  AVAILABLE
+  USING
+  CLEANING
+  MAINTENANCE
+}
+
+enum BookingStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ServiceCategory {
+  DRINKS
+  SNACKS
+  FRUITS
+  COMBO
+}
+
+model User {
+  id           String    @id @unique
+  email        String    @unique
+  firstName    String
+  lastName     String
+  profileImage String?
+  role         UserRole  @default(CUSTOMER)
+  rooms        KaraokeRoom[] @relation("ManagerRooms")
+  bookings     Booking[]
+  createdAt    DateTime  @default(now())
+}
+
+model KaraokeRoom {
+  id           String        @id @default(uuid())
+  name         String
+  description  String?
+  roomType     RoomType      @default(STANDARD)
+  capacity     Int           @default(4)
+  status       RoomStatus    @default(AVAILABLE)
+  pricePerHour Int
+  images       String[]      @default([])
+  createdAt    DateTime      @default(now())
+  manager      User?         @relation("ManagerRooms", fields: [managerId], references: [id])
+  managerId    String?
+  bookings     Booking[]
+}
+
+model Booking {
+  id              String          @id @default(uuid())
+  startTime       DateTime
+  endTime         DateTime
+  totalHours      Float
+  totalPrice      Int
+  status          BookingStatus   @default(PENDING)
+  createdAt       DateTime        @default(now())
+  customer        User?           @relation(fields: [customerId], references: [id])
+  customerId      String?
+  room            KaraokeRoom?    @relation(fields: [roomId], references: [id])
+  roomId          String?
+  bookingServices BookingService[]
+}
+
+model Service {
+  id              String          @id @default(uuid())
+  name            String
+  category        ServiceCategory
+  description     String?
+  price           Int
+  createdAt       DateTime        @default(now())
+  bookingServices BookingService[]
+}
+
+model BookingService {
+  id         String  @id @default(uuid())
+  booking    Booking @relation(fields: [bookingId], references: [id])
+  bookingId  String
+  service    Service @relation(fields: [serviceId], references: [id])
+  serviceId  String
+  quantity   Int     @default(1)
+  subtotal   Int
+}
